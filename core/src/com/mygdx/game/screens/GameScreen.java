@@ -5,6 +5,9 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
@@ -26,40 +29,64 @@ public class GameScreen implements Screen, InputProcessor {
 
     private CueBall cueBall;
     private Cue cue;
+    private Texture bannerTexture;
+    private Sprite banner;
+    private BitmapFont font;
 
     private Vector3 touchPosition;
     private Vector3 firstTouch;
     private float directionRegionY, ballRegionY, cueRegionY;
 
+
+    // TODO: substituir estes estados por outros que façam sentido
+    private enum State {
+        NOMINAL, ERROR
+    }
+
     private Client client;
+    private State state;
 
     // Debugging ------------------------------
     private ShapeRenderer shapeRenderer;
 
     public GameScreen(final PoolGameClient game) {
         this.game = game;
+        state = State.NOMINAL;
 
         camera = new OrthographicCamera(game.VIEWPORT_WIDTH, game.VIEWPORT_HEIGHT);
         camera.position.set(game.VIEWPORT_WIDTH / 2, game.VIEWPORT_HEIGHT / 2, 0);
         camera.update();
 
+        // Objectos da cena ------------------------------
+        // (Devem ser feitos os disposes necessarios.)
         cueBall = new CueBall(game.VIEWPORT_WIDTH / 2, game.VIEWPORT_HEIGHT / 2);
         cue = new Cue(game.VIEWPORT_WIDTH / 2, cueBall.getSprite().getY() - 32);
 
+        bannerTexture = new Texture(Gdx.files.internal("banner.png"));
+        banner = new Sprite(bannerTexture);
+        int fontSize = (int) (Gdx.graphics.getHeight() * 0.04);
+        font = game.generateFont(fontSize);
+
+        // Variaveis de input ------------------------------
         touchPosition = new Vector3();
         firstTouch = new Vector3();
         directionRegionY = cueBall.getSprite().getY() + cueBall.getSprite().getHeight();
         ballRegionY = cueBall.getSprite().getY() - 32;
 
+        // Conectar ao servidor ------------------------------
+        // Se a conexao falhar o state passa a um estado de erro.
+        // E apresentada uma mensagem explicativa, e o utilizador pode voltar ao menu.
         try {
             client = new Client("localhost", 4444);
         } catch (GdxRuntimeException e) {
             System.out.println("Failed to connecto to server...");
+            state = State.ERROR;
         }
 
         Gdx.input.setInputProcessor(this);
 
         // Debugging ------------------------------
+        // TODO: eliminar ou esconder quando nao for preciso
         shapeRenderer = new ShapeRenderer();
     }
 
@@ -81,9 +108,17 @@ public class GameScreen implements Screen, InputProcessor {
         game.batch.begin();
         cueBall.render(game.batch);
         cue.render(game.batch);
+
+        // Em caso de erro ao ligar ao servidor (!) ------------------------------
+        if (state == State.ERROR) {
+            // TODO: desenhar um banner com o texto de erro
+            // TODO: voltar ao menu principal
+        }
+
         game.batch.end();
 
         // Debugging ------------------------------
+        // TODO: eliminar ou esconder quando nao for preciso
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(255, 0, 0, 255);
@@ -116,6 +151,7 @@ public class GameScreen implements Screen, InputProcessor {
     public void dispose() {
         cueBall.dispose();
         cue.dispose();
+        bannerTexture.dispose();
     }
 
     @Override
@@ -191,7 +227,7 @@ public class GameScreen implements Screen, InputProcessor {
                 message.addArgument("impulse", impulseMultiplier);
                 message.addArgument("direction", cueBall.getDirection());
                 message.addArgument("spin", cueBall.getHitAngle());
-                if (client.isConnected()) client.write(message.toJson());
+                if (client != null) client.write(message.toJson());
             }
         }
 
@@ -213,7 +249,7 @@ public class GameScreen implements Screen, InputProcessor {
             // (Escrito sempre que o utilizador aponta numa nova direcao.)
             Message message = new Message("aiming");
             message.addArgument("direction", cueBall.getDirection());
-            if (client.isConnected()) client.write(message.toJson());
+            if (client != null) client.write(message.toJson());
             return true;
         }
 
