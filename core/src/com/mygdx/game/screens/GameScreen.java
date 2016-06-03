@@ -111,6 +111,7 @@ public class GameScreen implements Screen, InputProcessor {
 
         // Em caso de erro ao ligar ao servidor (!) ------------------------------
         if (state == State.ERROR) {
+            banner.draw(game.batch);
             // TODO: desenhar um banner com o texto de erro
             // TODO: voltar ao menu principal
         }
