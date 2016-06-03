@@ -10,7 +10,9 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
@@ -34,9 +36,28 @@ public class OptionsScreen implements Screen {
         stage = new Stage();
         Gdx.input.setInputProcessor(stage);
 
+        // Remover teclado do ecra (android) ------------------------------
+        // Cria um botao invisivel, que ocupa o ecra inteiro.
+        // Quando clicado, faz com que o teclado virtual desapareca
+        ImageButton.ImageButtonStyle style = new ImageButton.ImageButtonStyle();
+        style.up = null;
+        style.down = null;
+        ImageButton cancelFocusButton = new ImageButton(style);
+        cancelFocusButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
+
         table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        Stack stack = new Stack();
+        stack.addActor(cancelFocusButton);
+        stack.addActor(table);
+        stack.setFillParent(true);
+
+        stage.addActor(stack);
 
         // Tamanhos das fonts ------------------------------
         int fontTitleSize = (int) (Gdx.graphics.getHeight() * 0.06);
@@ -57,6 +78,7 @@ public class OptionsScreen implements Screen {
         fldStyle.background = new TextureRegionDrawable(new TextureRegion(new Texture(Gdx.files.internal("text-field.png"))));
         fldStyle.background.setLeftWidth(fldStyle.background.getLeftWidth() + 10);
         fldStyle.background.setRightWidth(fldStyle.background.getRightWidth() + 10);
+        fldStyle.cursor = new TextureRegionDrawable(new TextureRegion(new Texture(Gdx.files.internal("cursor.png"))));
 
         // TODO: fazer dispose destas texturas
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
@@ -67,10 +89,49 @@ public class OptionsScreen implements Screen {
 
         // Criacao dos actors ------------------------------
         Label lblTitle = new Label("Options Menu", lblTitleStyle);
+        lblTitle.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
+
         Label lblNickname = new Label("Nickname :", lblMainStyle);
+        lblNickname.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
+
         Label lblAdress = new Label("IP Adress :", lblMainStyle);
+        lblAdress.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
+
         Label lblPort = new Label("Port :", lblMainStyle);
-        Label fldSound = new Label("Sound : ", lblMainStyle);
+        lblPort.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
+
+        Label lblSound = new Label("Sound : ", lblMainStyle);
+        lblSound.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
+            }
+        });
 
         // TODO: gravar as opcoes entre sessoes (?)
         final TextField fldNickname = new TextField(game.name, fldStyle);
@@ -111,6 +172,8 @@ public class OptionsScreen implements Screen {
         btnMainMenu.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+                stage.unfocusAll();
                 game.setScreen(new MainMenuScreen(game));
             }
         });
@@ -139,7 +202,7 @@ public class OptionsScreen implements Screen {
         table.add(fldPort);
 
         table.row();
-        table.add(fldSound);
+        table.add(lblSound);
         table.add(btnSound);
 
         table.row();
