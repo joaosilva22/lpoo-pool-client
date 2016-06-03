@@ -7,9 +7,13 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygdx.game.PoolGameClient;
+import com.mygdx.game.network.Client;
+import com.mygdx.game.network.Message;
+import com.mygdx.game.sprites.Cue;
 import com.mygdx.game.sprites.CueBall;
 
 /**
@@ -21,10 +25,13 @@ public class GameScreen implements Screen, InputProcessor {
     private OrthographicCamera camera;
 
     private CueBall cueBall;
+    private Cue cue;
 
     private Vector3 touchPosition;
     private Vector3 firstTouch;
     private float directionRegionY, ballRegionY, cueRegionY;
+
+    private Client client;
 
     // Debugging ------------------------------
     private ShapeRenderer shapeRenderer;
@@ -37,11 +44,18 @@ public class GameScreen implements Screen, InputProcessor {
         camera.update();
 
         cueBall = new CueBall(game.VIEWPORT_WIDTH / 2, game.VIEWPORT_HEIGHT / 2);
+        cue = new Cue(game.VIEWPORT_WIDTH / 2, cueBall.getSprite().getY() - 32);
 
         touchPosition = new Vector3();
         firstTouch = new Vector3();
         directionRegionY = cueBall.getSprite().getY() + cueBall.getSprite().getHeight();
         ballRegionY = cueBall.getSprite().getY() - 32;
+
+        try {
+            client = new Client("localhost", 4444);
+        } catch (GdxRuntimeException e) {
+            System.out.println("Failed to connecto to server...");
+        }
 
         Gdx.input.setInputProcessor(this);
 
@@ -57,6 +71,7 @@ public class GameScreen implements Screen, InputProcessor {
     @Override
     public void render(float delta) {
         cueBall.update(delta);
+        cue.update(delta);
         camera.update();
 
         Gdx.gl.glClearColor(0, 0.5f, 0, 1);
@@ -65,6 +80,7 @@ public class GameScreen implements Screen, InputProcessor {
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
         cueBall.render(game.batch);
+        cue.render(game.batch);
         game.batch.end();
 
         // Debugging ------------------------------
@@ -99,6 +115,7 @@ public class GameScreen implements Screen, InputProcessor {
     @Override
     public void dispose() {
         cueBall.dispose();
+        cue.dispose();
     }
 
     @Override
@@ -123,9 +140,11 @@ public class GameScreen implements Screen, InputProcessor {
         // Direcao da tacada ------------------------------
         if (touchPosition.y > directionRegionY) {
             firstTouch.set(touchPosition);
+            return true;
         }
 
         // Angulo de incidencia da tacada ------------------------------
+        // TODO: implementar duplo clique para centrar o 'spin'
         if (touchPosition.y > ballRegionY && touchPosition.y < directionRegionY) {
             float angle;
             float step = (float) Math.PI / cueBall.getSprite().getWidth();
@@ -146,11 +165,36 @@ public class GameScreen implements Screen, InputProcessor {
             cueBall.setHitAngle(angle);
             return true;
         }
+
+        // Forca da tacada ------------------------------
+        if (touchPosition.y < ballRegionY) {
+            firstTouch.set(touchPosition);
+            return true;
+        }
+
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        camera.unproject(touchPosition.set(screenX, screenY, 0));
+
+        // Forca da tacada ------------------------------
+        if (touchPosition.y < ballRegionY) {
+            float impulseMultiplier = 1 - (touchPosition.y / ballRegionY);
+            cue.setImpulseMultiplier(impulseMultiplier, false);
+
+            // fazer a jogada se o impulseMultiplier for maior que um certo treshold
+            // TODO: Substituir este threshold por uma constante
+            if (impulseMultiplier > 0.1) {
+                Message message = new Message("play");
+                message.addArgument("impulse", impulseMultiplier);
+                message.addArgument("direction", cueBall.getDirection());
+                message.addArgument("spin", cueBall.getHitAngle());
+                if (client.isConnected()) client.write(message.toJson());
+            }
+        }
+
         return false;
     }
 
@@ -164,6 +208,13 @@ public class GameScreen implements Screen, InputProcessor {
             Vector3 delta = dragPosition.cpy().sub(firstTouch);
             cueBall.setDirection(cueBall.getDirection() + (delta.x / 2));
             firstTouch.set(dragPosition);
+
+            // Informar o servidor da direcao atual da tacada
+            // (Escrito sempre que o utilizador aponta numa nova direcao.)
+            Message message = new Message("aiming");
+            message.addArgument("direction", cueBall.getDirection());
+            if (client.isConnected()) client.write(message.toJson());
+            return true;
         }
 
         // Angulo de incidencia da tacada ------------------------------
@@ -188,8 +239,16 @@ public class GameScreen implements Screen, InputProcessor {
             return true;
         }
 
-        /*Vector3 delta = dragPosition.cpy().sub(touchPosition);
-        cueBall.setHitAngle(cueBall.getHitAngle() + (delta.x / 1000));*/
+
+        // Forca da tacada ------------------------------
+        if (firstTouch.y < ballRegionY && dragPosition.y < ballRegionY) {
+            Vector3 delta = dragPosition.cpy().sub(firstTouch);
+            float impulseMultiplier = 1 - (dragPosition.y / ballRegionY);
+            cue.setImpulseMultiplier(impulseMultiplier, true);
+            firstTouch.set(dragPosition);
+            return true;
+        }
+
         return false;
     }
 

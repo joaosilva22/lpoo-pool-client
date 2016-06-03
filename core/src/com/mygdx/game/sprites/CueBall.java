@@ -65,6 +65,10 @@ public class CueBall {
         return ball;
     }
 
+    public float getHitAngle() {
+        return hitAngle;
+    }
+
     public void setHitAngle(float angle) {
         this.hitAngle = angle;
     }
