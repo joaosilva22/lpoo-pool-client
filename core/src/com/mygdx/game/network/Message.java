@@ -16,7 +16,7 @@ public class Message {
         args = new ArrayList<MessageArgument>();
     }
 
-    public void addArgument(String name, float value) {
+    public void addArgument(String name, Object value) {
         args.add(new MessageArgument(name, value));
     }
 
@@ -27,9 +27,9 @@ public class Message {
 
     private class MessageArgument {
         private String name;
-        private float value;
+        private Object value;
 
-        public MessageArgument(String name, float value) {
+        public MessageArgument(String name, Object value) {
             this.name = name;
             this.value = value;
         }
