@@ -15,6 +15,8 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygdx.game.PoolGameClient;
+import com.mygdx.game.manager.StateManager;
+import com.mygdx.game.manager.states.GameStates;
 import com.mygdx.game.network.Client;
 import com.mygdx.game.network.Message;
 import com.mygdx.game.sprites.Cue;
@@ -36,23 +38,17 @@ public class GameScreen implements Screen, InputProcessor {
 
     private Vector3 touchPosition;
     private Vector3 firstTouch;
-    private float directionRegionY, ballRegionY, cueRegionY;
+    private float directionRegionY, ballRegionY;
 
-
-    // TODO: substituir estes estados por outros que façam sentido
-    private enum State {
-        NOMINAL, ERROR
-    }
-
+    private StateManager<GameScreen, GameStates> stateManager;
     private Client client;
-    private State state;
 
     // Debugging ------------------------------
     private ShapeRenderer shapeRenderer;
 
     public GameScreen(final PoolGameClient game) {
         this.game = game;
-        state = State.NOMINAL;
+        stateManager = new StateManager<GameScreen, GameStates>(this, GameStates.WAITING);
 
         camera = new OrthographicCamera(game.VIEWPORT_WIDTH, game.VIEWPORT_HEIGHT);
         camera.position.set(game.VIEWPORT_WIDTH / 2, game.VIEWPORT_HEIGHT / 2, 0);
@@ -84,10 +80,10 @@ public class GameScreen implements Screen, InputProcessor {
         // Se a conexao falhar o state passa a um estado de erro.
         // E apresentada uma mensagem explicativa, e o utilizador pode voltar ao menu.
         try {
-            client = new Client(game.IPAdress, game.port);
+            client = new Client(game.IPAdress, game.port, this);
         } catch (GdxRuntimeException e) {
-            System.out.println("Failed to connecto to server...");
-            state = State.ERROR;
+            System.out.println("Failed to connect to to server...");
+            stateManager.setState(GameStates.ERROR);
         }
 
         // Informar o servidor do nickname escolhido
@@ -109,9 +105,11 @@ public class GameScreen implements Screen, InputProcessor {
 
     @Override
     public void render(float delta) {
-        cueBall.update(delta);
-        cue.update(delta);
         camera.update();
+
+        stateManager.update(delta);
+        cue.update(delta);
+        cueBall.update(delta);
 
         Gdx.gl.glClearColor(0, 0.5f, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -122,7 +120,7 @@ public class GameScreen implements Screen, InputProcessor {
         cue.render(game.batch);
 
         // Em caso de erro ao ligar ao servidor (!) ------------------------------
-        if (state == State.ERROR) {
+        if (stateManager.getState().equals(GameStates.ERROR)) {
             banner.draw(game.batch);
 
             float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
@@ -190,14 +188,14 @@ public class GameScreen implements Screen, InputProcessor {
         camera.unproject(touchPosition.set(screenX, screenY, 0));
 
         // Direcao da tacada ------------------------------
-        if (touchPosition.y > directionRegionY && state != State.ERROR) {
+        if (touchPosition.y > directionRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             firstTouch.set(touchPosition);
             return true;
         }
 
         // Angulo de incidencia da tacada ------------------------------
         // TODO: implementar duplo clique para centrar o 'spin'
-        if (touchPosition.y > ballRegionY && touchPosition.y < directionRegionY && state != State.ERROR) {
+        if (touchPosition.y > ballRegionY && touchPosition.y < directionRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             float angle;
             float step = (float) Math.PI / cueBall.getSprite().getWidth();
 
@@ -219,7 +217,7 @@ public class GameScreen implements Screen, InputProcessor {
         }
 
         // Forca da tacada ------------------------------
-        if (touchPosition.y < ballRegionY && state != State.ERROR) {
+        if (touchPosition.y < ballRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             firstTouch.set(touchPosition);
             return true;
         }
@@ -232,23 +230,26 @@ public class GameScreen implements Screen, InputProcessor {
         camera.unproject(touchPosition.set(screenX, screenY, 0));
 
         // Forca da tacada ------------------------------
-        if (touchPosition.y < ballRegionY && state != State.ERROR) {
+        if (touchPosition.y < ballRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             float impulseMultiplier = 1 - (touchPosition.y / ballRegionY);
             cue.setImpulseMultiplier(impulseMultiplier, false);
 
-            // fazer a jogada se o impulseMultiplier for maior que um certo treshold
+            // Fazer a jogada se o impulseMultiplier for maior que um certo treshold
+            // Muda o estado para 'WAITING'
             // TODO: Substituir este threshold por uma constante
             if (impulseMultiplier > 0.1) {
                 Message message = new Message("play");
                 message.addArgument("impulse", impulseMultiplier);
                 message.addArgument("direction", cueBall.getDirection());
                 message.addArgument("spin", cueBall.getHitAngle());
+                // TODO: checkar a conexao antes de fazer a jogada e mudar de estado se necessario
                 if (client != null) client.write(message.toJson());
+                stateManager.setState(GameStates.WAITING);
             }
         }
 
         // Voltar ao menu principal ------------------------------
-        if (state == State.ERROR) {
+        if (stateManager.getState().equals(GameStates.ERROR)) {
             game.setScreen(new MainMenuScreen(game));
         }
 
@@ -261,9 +262,9 @@ public class GameScreen implements Screen, InputProcessor {
         camera.unproject(dragPosition);
 
         // Direcao da tacada ------------------------------
-        if (firstTouch.y > directionRegionY && dragPosition.y > directionRegionY && state != State.ERROR) {
+        if (firstTouch.y > directionRegionY && dragPosition.y > directionRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             Vector3 delta = dragPosition.cpy().sub(firstTouch);
-            cueBall.setDirection(cueBall.getDirection() + (delta.x / 2));
+            cueBall.setDirection(cueBall.getDirection() + (delta.x / 100));
             firstTouch.set(dragPosition);
 
             // Informar o servidor da direcao atual da tacada
@@ -275,7 +276,7 @@ public class GameScreen implements Screen, InputProcessor {
         }
 
         // Angulo de incidencia da tacada ------------------------------
-        if (dragPosition.y > ballRegionY && dragPosition.y < directionRegionY && state != State.ERROR) {
+        if (dragPosition.y > ballRegionY && dragPosition.y < directionRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             float angle;
             float step = (float) Math.PI / cueBall.getSprite().getWidth();
 
@@ -298,7 +299,7 @@ public class GameScreen implements Screen, InputProcessor {
 
 
         // Forca da tacada ------------------------------
-        if (firstTouch.y < ballRegionY && dragPosition.y < ballRegionY && state != State.ERROR) {
+        if (firstTouch.y < ballRegionY && dragPosition.y < ballRegionY && stateManager.getState().equals(GameStates.PLAYING)) {
             Vector3 delta = dragPosition.cpy().sub(firstTouch);
             float impulseMultiplier = 1 - (dragPosition.y / ballRegionY);
             cue.setImpulseMultiplier(impulseMultiplier, true);
@@ -317,5 +318,21 @@ public class GameScreen implements Screen, InputProcessor {
     @Override
     public boolean scrolled(int amount) {
         return false;
+    }
+
+    public void handleMessage(Message message) {
+        stateManager.handleMessage(message);
+    }
+
+    public StateManager<GameScreen, GameStates> getStateManager() {
+        return stateManager;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public CueBall getCueBall() {
+        return cueBall;
     }
 }
