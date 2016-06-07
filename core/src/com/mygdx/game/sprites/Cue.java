@@ -57,8 +57,6 @@ public class Cue {
                 positionMultiplier = 0;
                 impulseMultiplier = 0;
             }
-            // Aqui falta fazer a jogada quando o positionMultiplier chegar a 0
-            // Com o impulso correspondente a impulseMultiplier
         }
     }
 
@@ -74,5 +72,9 @@ public class Cue {
 
     public void dispose() {
         texture.dispose();
+    }
+
+    public float getImpulseMultiplier() {
+        return impulseMultiplier;
     }
 }
