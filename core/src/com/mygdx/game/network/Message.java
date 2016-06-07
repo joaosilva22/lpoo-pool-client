@@ -98,7 +98,7 @@ public class Message {
 
         /**
          * Returns the argument's name.
-         * @return
+         * @return The argument's name.
          */
         public String getName() {
             return name;
@@ -106,7 +106,7 @@ public class Message {
 
         /**
          * Returns the argument's value.
-         * @return
+         * @return The argument's value.
          */
         public Object getValue() {
             return value;
