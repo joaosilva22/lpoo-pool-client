@@ -48,7 +48,7 @@ public class GameScreen implements Screen, InputProcessor {
 
     public GameScreen(final PoolGameClient game) {
         this.game = game;
-        stateManager = new StateManager<GameScreen, GameStates>(this, GameStates.WAITING);
+        stateManager = new StateManager<GameScreen, GameStates>(this, GameStates.WAITING_SERVER);
 
         camera = new OrthographicCamera(game.VIEWPORT_WIDTH, game.VIEWPORT_HEIGHT);
         camera.position.set(game.VIEWPORT_WIDTH / 2, game.VIEWPORT_HEIGHT / 2, 0);
@@ -119,14 +119,61 @@ public class GameScreen implements Screen, InputProcessor {
         cueBall.render(game.batch);
         cue.render(game.batch);
 
-        // Em caso de erro ao ligar ao servidor (!) ------------------------------
+        // Em caso de erro ao ligar ao servidor (!)
+        // (Estado do jogo ERROR)
         if (stateManager.getState().equals(GameStates.ERROR)) {
             banner.draw(game.batch);
-
             float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
             float smallTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.40f;
-            font.draw(game.batch, "Failed to connect to server", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
-            fontSmall.draw(game.batch, "Tap anywhere to go back :^(", 0, smallTextY, game.VIEWPORT_WIDTH, Align.center, true);
+            font.draw(game.batch, "Failed to connect to server.", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
+            fontSmall.draw(game.batch, "Tap anywhere to go back", 0, smallTextY, game.VIEWPORT_WIDTH, Align.center, true);
+        }
+
+        // Enquanto espera que o oponente se conecte ao servidor
+        // (Estado do jogo WAITING_SERVER)
+        if (stateManager.getState().equals(GameStates.WAITING_SERVER)) {
+            banner.draw(game.batch);
+            float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
+            font.draw(game.batch, "Waiting for your opponent to connect.", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
+        }
+
+        // Enquanto o cliente espera pela sua vez de jogar
+        // (Estado do jogo WAITING_OPPONENT)
+        if (stateManager.getState().equals(GameStates.WAITING_OPPONENT)) {
+            banner.draw(game.batch);
+            float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
+            float smallTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.40f;
+            font.draw(game.batch, "Please wait.", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
+            fontSmall.draw(game.batch, "...", 0, smallTextY, game.VIEWPORT_WIDTH, Align.center, true);
+        }
+
+        // Caso tenha ganho o jogo
+        // (Estado do jogo WON)
+        if (stateManager.getState().equals(GameStates.WON)) {
+            banner.draw(game.batch);
+            float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
+            float smallTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.40f;
+            font.draw(game.batch, "Victory!", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
+            fontSmall.draw(game.batch, "Tap anywhere to go back", 0, smallTextY, game.VIEWPORT_WIDTH, Align.center, true);
+        }
+
+        // Caso tenha perdido o jogo
+        // (Estado do jogo LOST)
+        if (stateManager.getState().equals(GameStates.LOST)) {
+            banner.draw(game.batch);
+            float mainTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.65f;
+            float smallTextY = game.VIEWPORT_HEIGHT / 2 + banner.getHeight() * 0.40f;
+            font.draw(game.batch, "Defeat ...", 0, mainTextY, game.VIEWPORT_WIDTH, Align.center, true);
+            fontSmall.draw(game.batch, "Tap anywhere to go back", 0, smallTextY, game.VIEWPORT_WIDTH, Align.center, true);
+        }
+
+        // Caso perca a ligacao ao servidor
+        // Muda o estado para ERROR
+        if (client != null) {
+            if (!client.isConnected() && !stateManager.getState().equals(GameStates.ERROR)) {
+                client.disconnect();
+                stateManager.setState(GameStates.ERROR);
+            }
         }
 
         game.batch.end();
@@ -244,12 +291,27 @@ public class GameScreen implements Screen, InputProcessor {
                 message.addArgument("spin", cueBall.getHitAngle());
                 // TODO: checkar a conexao antes de fazer a jogada e mudar de estado se necessario
                 if (client != null) client.write(message.toJson());
-                stateManager.setState(GameStates.WAITING);
+                stateManager.setState(GameStates.WAITING_OPPONENT);
             }
         }
 
-        // Voltar ao menu principal ------------------------------
+        // Voltar ao menu principal
+        // Em caso de erro (ERROR)
         if (stateManager.getState().equals(GameStates.ERROR)) {
+            game.setScreen(new MainMenuScreen(game));
+        }
+
+        // Voltar ao menu principal
+        // Em caso de vitoria (WON)
+        if (stateManager.getState().equals(GameStates.WON)) {
+            client.disconnect();
+            game.setScreen(new MainMenuScreen(game));
+        }
+
+        // Voltar ao menu principal
+        // Em caso de derrota (LOST)
+        if (stateManager.getState().equals(GameStates.LOST)) {
+            client.disconnect();
             game.setScreen(new MainMenuScreen(game));
         }
 

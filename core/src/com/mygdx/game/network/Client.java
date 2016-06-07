@@ -18,14 +18,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Client {
     private Socket client;
     private BufferedReader in;
-    // TODO: ver o que e uma linked blocking queue :^D
     private LinkedBlockingQueue<String> messages;
+    private boolean connected;
 
     public Client(String IPAdress, int port, final GameScreen gameScreen) {
         SocketHints hints = new SocketHints();
         hints.connectTimeout = 5000;
         System.out.println("Atempting to connect to IP " + IPAdress);
         client = Gdx.net.newClientSocket(Net.Protocol.TCP, IPAdress, port, hints);
+        connected = true;
 
         in = new BufferedReader(new InputStreamReader(client.getInputStream()));
         messages = new LinkedBlockingQueue<String>();
@@ -35,14 +36,23 @@ public class Client {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (true) {
-                    try {
-                        messages.put(in.readLine());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        String toRead = in.readLine();
+                        if (toRead == null) {
+                            connected = false;
+                            return;
+                        }
+                        System.out.println("Read:" + toRead);
+                        messages.put(toRead);
                     }
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                    connected = false;
+                    return;
+                } catch (InterruptedException e) {
+                    connected = false;
+                    return;
                 }
             }
         }).start();
@@ -56,9 +66,11 @@ public class Client {
                         Json json = new Json();
                         Message message = json.fromJson(Message.class, messages.take());
                         // TODO: handling das mensagens
+                        System.out.println("handing:" + message.toJson());
                         gameScreen.handleMessage(message);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
+                        return;
                     }
                 }
             }
@@ -74,7 +86,11 @@ public class Client {
         }
     }
 
+    public void disconnect() {
+        client.dispose();
+    }
+
     public boolean isConnected() {
-        return client.isConnected();
+        return connected;
     }
 }

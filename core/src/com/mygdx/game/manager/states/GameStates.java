@@ -33,12 +33,12 @@ public enum GameStates implements State<GameScreen> {
         }
     },
 
-    WAITING() {
+    WAITING_SERVER() {
         @Override
         public void enter(GameScreen entity) {
             // Debugging
             // TODO: apagar quando nao for necessario
-            System.out.println("Entered WAITING_FOR_PLAYERS ...");
+            System.out.println("Entered WAITING_SERVER ...");
         }
 
         @Override
@@ -50,7 +50,36 @@ public enum GameStates implements State<GameScreen> {
         public void exit(GameScreen entity) {
             // Debugging
             // TODO: apagar quando nao for necessario
-            System.out.println("Left WAITING ...");
+            System.out.println("Left WAITING_SERVER ...");
+        }
+
+        @Override
+        public void handleMessage(GameScreen entity, Message message) {
+            // Muda o estado para 'WAITING'
+            // Da inicio ao jogo
+            if (message.getTag().equals("ready"))
+                entity.getStateManager().setState(WAITING_OPPONENT);
+        }
+    },
+
+    WAITING_OPPONENT() {
+        @Override
+        public void enter(GameScreen entity) {
+            // Debugging
+            // TODO: apagar quando nao for necessario
+            System.out.println("Entered WAITING_OPPONENT ...");
+        }
+
+        @Override
+        public void update(GameScreen entity, float delta) {
+
+        }
+
+        @Override
+        public void exit(GameScreen entity) {
+            // Debugging
+            // TODO: apagar quando nao for necessario
+            System.out.println("Left WAITING_OPPONENT ...");
         }
 
         @Override
@@ -59,6 +88,14 @@ public enum GameStates implements State<GameScreen> {
             // Inicia a jogada deste jogador
             if (message.getTag().equals("begin-turn"))
                 entity.getStateManager().setState(PLAYING);
+
+            // Termina o jogo em caso de vitoria
+            if (message.getTag().equals("won"))
+                entity.getStateManager().setState(WON);
+
+            // Termina o jogo em caso de derrota
+            if (message.getTag().equals("lost"))
+                entity.getStateManager().setState(LOST);
         }
     },
 
@@ -86,6 +123,50 @@ public enum GameStates implements State<GameScreen> {
             // Debugging
             // TODO: apagar quando nao for necessario
             System.out.println("Left PLAYING ...");
+        }
+
+        @Override
+        public void handleMessage(GameScreen entity, Message message) {
+
+        }
+    },
+
+    WON() {
+        @Override
+        public void enter(GameScreen entity) {
+
+        }
+
+        @Override
+        public void update(GameScreen entity, float delta) {
+
+        }
+
+        @Override
+        public void exit(GameScreen entity) {
+
+        }
+
+        @Override
+        public void handleMessage(GameScreen entity, Message message) {
+
+        }
+    },
+
+    LOST() {
+        @Override
+        public void enter(GameScreen entity) {
+
+        }
+
+        @Override
+        public void update(GameScreen entity, float delta) {
+
+        }
+
+        @Override
+        public void exit(GameScreen entity) {
+
         }
 
         @Override
