@@ -3,6 +3,7 @@ package com.mygdx.game.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -42,6 +43,8 @@ public class GameScreen implements Screen, InputProcessor {
 
     private StateManager<GameScreen, GameStates> stateManager;
     private Client client;
+
+    private Sound sound;
 
     // Debugging ------------------------------
     private ShapeRenderer shapeRenderer;
@@ -90,6 +93,9 @@ public class GameScreen implements Screen, InputProcessor {
         Message message = new Message("connect");
         message.addArgument("name", game.name);
         if (client != null) client.write(message.toJson());
+
+        // Carrega o efeito sonoro
+        sound = Gdx.audio.newSound(Gdx.files.internal("audio/cue.wav"));
 
         Gdx.input.setInputProcessor(this);
 
@@ -291,6 +297,7 @@ public class GameScreen implements Screen, InputProcessor {
                 message.addArgument("spin", cueBall.getHitAngle());
                 // TODO: checkar a conexao antes de fazer a jogada e mudar de estado se necessario
                 if (client != null) client.write(message.toJson());
+                sound.play(game.volume);
                 stateManager.setState(GameStates.WAITING_OPPONENT);
             }
         }

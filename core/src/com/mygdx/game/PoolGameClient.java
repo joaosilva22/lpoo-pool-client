@@ -18,6 +18,7 @@ public class PoolGameClient extends Game {
 	public String name;
 	public String IPAdress;
 	public int port;
+	public float volume;
 	
 	@Override
 	public void create () {
@@ -27,6 +28,7 @@ public class PoolGameClient extends Game {
 		name = "Player";
 		IPAdress = "XXX.XX.XX.XX";
 		port = 4444;
+		volume = 1.0f;
 
 		this.setScreen(new MainMenuScreen(this));
 	}

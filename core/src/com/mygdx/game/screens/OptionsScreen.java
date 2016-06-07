@@ -163,8 +163,13 @@ public class OptionsScreen implements Screen {
         btnSound.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (btnSound.isChecked()) btnSound.setText("OFF");
-                else btnSound.setText("ON");
+                if (btnSound.isChecked()) {
+                    btnSound.setText("OFF");
+                    game.volume = 0.0f;
+                } else {
+                    btnSound.setText("ON");
+                    game.volume = 1.0f;
+                }
             }
         });
 
