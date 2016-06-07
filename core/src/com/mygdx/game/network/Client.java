@@ -21,6 +21,13 @@ public class Client {
     private LinkedBlockingQueue<String> messages;
     private boolean connected;
 
+    /**
+     * Creates a Client object.
+     * Handles the connection between the application and the server.
+     * @param IPAdress The server's IP adress.
+     * @param port The server's port.
+     * @param gameScreen The game screen responsible for the connection.
+     */
     public Client(String IPAdress, int port, final GameScreen gameScreen) {
         SocketHints hints = new SocketHints();
         hints.connectTimeout = 5000;
@@ -77,6 +84,10 @@ public class Client {
         }).start();
     }
 
+    /**
+     * Writes message to server.
+     * @param message Message to write.
+     */
     public void write(String message) {
         try {
             String toSend = message + "\n";
@@ -86,10 +97,17 @@ public class Client {
         }
     }
 
+    /**
+     * Disconnects the client.
+     */
     public void disconnect() {
         client.dispose();
     }
 
+    /**
+     * Returns wheter or not the client is still connected to the server.
+     * @return Flag connected.
+     */
     public boolean isConnected() {
         return connected;
     }

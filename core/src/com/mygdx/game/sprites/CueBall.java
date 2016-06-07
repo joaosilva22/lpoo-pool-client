@@ -19,6 +19,11 @@ public class CueBall {
     private float hitAngle;
     private float direction;
 
+    /**
+     * Creates a CueBall object representing a billiards cue ball.
+     * @param x The x coordinate of the cue ball.
+     * @param y The y coordinate of the cue ball.
+     */
     public CueBall(float x, float y) {
         ballTex = new Texture(Gdx.files.internal("cue-ball.png"));
         ball = new Sprite(ballTex);
@@ -46,6 +51,10 @@ public class CueBall {
         direction = (float) Math.PI / 2;
     }
 
+    /**
+     * Updates the cue ball.
+     * @param delta The time interval between update calls.
+     */
     public void update(float delta) {
         float xpos = ball.getX() + ball.getWidth()/2 + MathUtils.cos(hitAngle) * ball.getWidth()/2;
         float ypos = ball.getY() + ball.getHeight()/2 + MathUtils.sin(hitAngle) * ball.getHeight()/2;
@@ -54,6 +63,10 @@ public class CueBall {
         rotIndicator.setRotation(direction);
     }
 
+    /**
+     * Renders the cue ball.
+     * @param batch The SpriteBatch used to render the cue ball.
+     */
     public void render(SpriteBatch batch) {
         rotIndicator.draw(batch);
         dirIndicator.draw(batch);
@@ -61,26 +74,49 @@ public class CueBall {
         hitmarker.draw(batch);
     }
 
+    /**
+     * Returns the cue ball's sprite.
+     * @return The ball's sprite.
+     */
     public Sprite getSprite() {
         return ball;
     }
 
+    /**
+     * Returns the cue ball's hit angle.
+     * @return The ball's hit angle.
+     */
     public float getHitAngle() {
         return hitAngle;
     }
 
+    /**
+     * Sets the cue ball's hit angle.
+     * @param angle The new hit angle.
+     */
     public void setHitAngle(float angle) {
         this.hitAngle = angle;
     }
 
+    /**
+     * Returns the direction of the cue ball.
+     * @return The cue ball's direction.
+     */
     public float getDirection() {
         return direction;
     }
 
+    /**
+     * Sets the cue ball's direction.
+     * @param direction The new direction.
+     */
     public void setDirection(float direction) {
         this.direction = direction;
     }
 
+    /**
+     * Disposes of the cue ball.
+     */
     public void dispose() {
         ballTex.dispose();
         hitmarkerTex.dispose();

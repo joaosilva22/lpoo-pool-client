@@ -20,6 +20,11 @@ public class Cue {
     private float cueSpeed;
     private float impulseMultiplierTreshold;
 
+    /**
+     * Creates a Cue object, representing a billiards cue.
+     * @param x The x coordinate of the cue.
+     * @param y Tex y coordinate of the cue.
+     */
     public Cue(float x, float y) {
         texture = new Texture(Gdx.files.internal("cue.png"));
         sprite = new Sprite(texture);
@@ -33,6 +38,10 @@ public class Cue {
         impulseMultiplierTreshold = 0.1f;
     }
 
+    /**
+     * Updates the Cue.
+     * @param delta The time interval between update calls.
+     */
     public void update(float delta) {
         // Desenhar o taco na posicao determinada por positionMultiplier
         sprite.setPosition(defaultPosition.x, defaultPosition.y - positionMultiplier * (defaultPosition.y + sprite.getHeight()));
@@ -60,20 +69,36 @@ public class Cue {
         }
     }
 
+    /**
+     * Renders the Cue.
+     * @param batch The SpriteBatch used to render.
+     */
     public void render(SpriteBatch batch) {
         sprite.draw(batch);
     }
 
+    /**
+     * Sets the Cue's impulse multiplier, as well as it's dragging flag.
+     * @param impulseMultiplier The impulseMultiplier value.
+     * @param dragging The dragging flag new value.
+     */
     public void setImpulseMultiplier(float impulseMultiplier, boolean dragging) {
         this.dragging = dragging;
         this.positionMultiplier = this.impulseMultiplier;
         this.impulseMultiplier = impulseMultiplier;
     }
 
+    /**
+     * Disposes of the Cue.
+     */
     public void dispose() {
         texture.dispose();
     }
 
+    /**
+     * Returns the impulse multiplier.
+     * @return The impulse multiplier.
+     */
     public float getImpulseMultiplier() {
         return impulseMultiplier;
     }
